@@ -6,6 +6,7 @@ var loading = true;
 exports.init = hassInit;
 
 Object.prototype.merge = function (obj) {
+	if (obj === undefined) return this;
 	for (var attrname in obj) { this[attrname] = obj[attrname]; }
 	return this;
 }
@@ -123,6 +124,7 @@ var add = {
 			"object_id": id,
 			"availability_topic": topic + '/meta/available',
 		};
+
 		// may be empty string (false)
 		if (opts['command']) json["command_topic"] = base + opts['command'];
 		if (opts['class']) json["device_class"] =  opts['class'];
@@ -132,30 +134,14 @@ var add = {
 			json['brightness_command_topic'] = base + opts['brightness_state_topic'] + '/on';
 		}
 
-		if (opts['brightness_scale']) {
-			json['brightness_scale'] = opts['brightness_scale'];
-		}
-
-		if (opts['brightness_value_template']) {
-			json['brightness_value_template'] = opts['brightness_value_template'];
-			json['brightness_bkabka'] = 'bob';
-		}
-
-		if (opts['brightness_command_template']) {
-			json['brightness_command_template'] = opts['brightness_command_template'];
+		if (opts['color_temp_state_topic']) {
+			json['color_temp_state_topic'] = base + opts['color_temp_state_topic'];
+			json['color_temp_command_topic'] = base + opts['color_temp_state_topic'] + '/on';
 		}
 
 		if (opts['rgb_state_topic']) {
 			json['rgb_state_topic'] = base + opts['rgb_state_topic'];
 			json['rgb_command_topic'] = base + opts['rgb_state_topic'] + '/on';
-		}
-
-		if (opts['rgb_value_template']) {
-			json['rgb_value_template'] = opts['rgb_value_template'];
-		}
-
-		if (opts['rgb_command_template']) {
-			json['rgb_command_template'] = opts['rgb_command_template'];
 		}
 
 		if (opts['hs_state_topic']) {
@@ -173,12 +159,17 @@ var add = {
 			json["payload_on"]  = 1;
 		}
 
-		if (control['min']) json["min"] = control['min'];
-		if (control['max']) json["max"] = control['max'];
+		if (control['min'] !== undefined) json["min"] = control['min'];
+		if (control['max'] !== undefined) json["max"] = control['max'];
 
-		['min', 'man', 'icon', 'state_class', 'payload_press', 'retain', 'value_template', 'payload_on', 'payload_off']
+		['min', 'man', 'icon', 'state_class', 'payload_press', 'retain',
+		'value_template', 'payload_on', 'payload_off',
+		'rgb_value_template', 'rgb_command_template',
+		'brightness_value_template', 'brightness_command_template',
+		'brightness_scale', 'brightness_command_template',
+		'max_mireds', 'min_mireds']
 		.forEach(function(value){
-			if (opts[value]) json[value] = opts[value];
+			if (opts[value] !== undefined) json[value] = opts[value];
 		});
 
 		publish(hass_topic, JSON.stringify(json), 2, true);
@@ -327,11 +318,15 @@ var db = {
 		config['driver'] = config['driver'] + ' ' + module_name;
 		if (typeof db[module_name] == 'function') {
 			db[module_name](device_name, config, obj);
+		} else if (typeof db[module_name] == 'string' &&
+			typeof db[db[module_name]] == 'function') {
+			db[db[module_name]](device_name, config, obj);
 		} else {
 			db['default'](device_name, config, obj);
 		}
 	},
 	'wb-mr6c': {},
+	'wb-mr6cv3': {},
 	'wb-mr6cu': {},
 	'wb-mdm3': function(device_name, config, obj) {
 		for(control_name in obj['controls']) {
@@ -389,7 +384,7 @@ var db = {
 				continue;
 			}
 
-			if (type == 'switch' && (control_name[0] == 'K')) {
+			if (type == 'switch' && (control_name[0] == 'S')) {
 				add['switch'](device_name, config, control_name, control, {icon: 'mdi:water-pump'});
 				continue;
 			}
@@ -495,7 +490,7 @@ var db = {
 			add[type](device_name, config, control_name, control);
 		}
 	},
-	'wb-mrgbw-d-fw3': function(device_name, config, obj) {
+	'wb-led': function(device_name, config, obj) {
 		for(control_name in obj['controls']) {
 			var control = obj['controls'][control_name];
 			if (control['type'] === undefined) continue;
@@ -524,6 +519,35 @@ var db = {
 				continue;
 			}
 
+			if (control_name == 'CCT1 Temperature' ||
+				control_name == 'CCT1 Brightness' ||
+				control_name == 'CCT2 Temperature' ||
+				control_name == 'CCT2 Brightness') {
+				continue;
+			}
+
+			if (control_name == 'CCT1 (channels 1_2)' || control_name == 'CCT1') {
+				add['light'](device_name, config, control_name, control, {
+					color_temp_state_topic: 'CCT1 Temperature',
+					brightness_state_topic: 'CCT1 Brightness',
+					brightness_scale: 100,
+					min_mireds: 0,
+					max_mireds: 100
+				});
+				continue;
+			}
+
+			if (control_name == 'CCT2 (channels 3_4)' || control_name == 'CCT2') {
+				add['light'](device_name, config, control_name, control, {
+					color_temp_state_topic: 'CCT2 Temperature',
+					brightness_state_topic: 'CCT2 Brightness',
+					brightness_scale: 100,
+					min_mireds: 0,
+					max_mireds: 100
+				});
+				continue;
+			}
+
 			if (type == 'value' && (control_name.indexOf('Counter') > 0 )) {
 				add['text'](device_name, config, control_name, control, {state_class: 'total_increasing', icon: 'mdi:counter'});
 				continue;
@@ -541,6 +565,7 @@ var db = {
 			add[type](device_name, config, control_name, control);
 		}
 	},
+	'wb-mrgbw-d-fw3': 'wb-led',
 	'wb-m1w2': {},
 	'wb-mai11': {},
 }
@@ -607,6 +632,7 @@ function hassInit(params) {
 		}
 
 		for(control_name in device['controls']) {
+			if (control_name == 'merge') continue;
 			var avalible = '/devices/' + device_name + '/controls/' + control_name + '/meta/available';
 			publish(avalible, 'online', 0, true);
 		}
