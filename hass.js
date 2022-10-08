@@ -78,12 +78,6 @@ trackMqtt("/devices/+/controls/+/meta/#", function(obj) {
 	analyze(obj, '^/devices/([^/]+)/controls/([^/]+)/meta(/([^/]+))?$', 'controls', true);
 });
 
-trackMqtt("/devices/+/controls/+/meta/error", function(message){
-	var topic = message.topic.replace('/meta/error', '/meta/available');
-	var state = (message.value == "") ? 'online' : 'offline';
-	publish(topic, state);
-});
-
 var add = {
 	'general': function(device_name, config, control_name, control, opts) {
 		var name = config['name'] !== undefined ? config['name'] : device_name;
@@ -122,7 +116,10 @@ var add = {
 			"state_topic": topic,
 			"unique_id": id,
 			"object_id": id,
-			"availability_topic": topic + '/meta/available',
+			"availability_topic": topic + '/meta/error',
+			"availability_template": "{{ True if value == '' else False }}',
+			"payload_not_available": false,
+			"payload_available": true
 		};
 
 		// may be empty string (false)
@@ -629,12 +626,6 @@ function hassInit(params) {
 		if (db[driver] === undefined) {
 			log("unknown driver={}", driver);
 			continue;
-		}
-
-		for(control_name in device['controls']) {
-			if (control_name == 'merge') continue;
-			var avalible = '/devices/' + device_name + '/controls/' + control_name + '/meta/available';
-			publish(avalible, 'online', 0, true);
 		}
 
 		if (typeof db[driver] == 'function') {
