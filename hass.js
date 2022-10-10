@@ -116,10 +116,21 @@ var add = {
 			"state_topic": topic,
 			"unique_id": id,
 			"object_id": id,
-			"availability_topic": topic + '/meta/error',
-			"availability_template": "{{ True if value == '' else False }}",
-			"payload_not_available": false,
-			"payload_available": true
+			"availability": [
+				{
+					"topic": topic + '/meta',
+					"value_template": "{{ False if value == '' else True }}",
+					"payload_not_available": false,
+					"payload_available": true
+				},
+				{
+					"topic": topic + '/meta/error',
+					"value_template": "{{ True if value == '' else False }}",
+					"payload_not_available": false,
+					"payload_available": true
+				}
+			],
+			"availability_mode": "latest"
 		};
 
 		// may be empty string (false)
@@ -169,7 +180,7 @@ var add = {
 			if (opts[value] !== undefined) json[value] = opts[value];
 		});
 
-		publish(hass_topic, JSON.stringify(json), 2, true);
+		publish(hass_topic, JSON.stringify(json), 0, true);
 	},
 
 	'temperature': function(device_name, config, control_name, control, params) {
