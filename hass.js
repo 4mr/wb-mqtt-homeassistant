@@ -117,7 +117,7 @@ var add = {
 			"unique_id": id,
 			"object_id": id,
 			"availability_topic": topic + '/meta/error',
-			"availability_template": "{{ True if value == '' else False }}',
+			"availability_template": "{{ True if value == '' else False }}",
 			"payload_not_available": false,
 			"payload_available": true
 		};
