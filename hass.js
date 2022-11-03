@@ -539,7 +539,7 @@ var db = {
 					color_temp_state_topic: 'CCT1 Temperature',
 					brightness_state_topic: 'CCT1 Brightness',
 					brightness_scale: 100,
-					min_mireds: 0,
+					min_mireds: 1,
 					max_mireds: 100
 				});
 				continue;
@@ -550,7 +550,7 @@ var db = {
 					color_temp_state_topic: 'CCT2 Temperature',
 					brightness_state_topic: 'CCT2 Brightness',
 					brightness_scale: 100,
-					min_mireds: 0,
+					min_mireds: 1,
 					max_mireds: 100
 				});
 				continue;
