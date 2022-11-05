@@ -1,3 +1,5 @@
+Данный скрипт устарел, новый скрипт https://github.com/4mr/wb-engine
+
 # Wirenboard Mqtt Home Assistant
 
 Интеграция устройств Wirenboard в Home Assistant
